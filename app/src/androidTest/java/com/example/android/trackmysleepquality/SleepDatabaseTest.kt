@@ -61,7 +61,7 @@ class SleepDatabaseTest {
 
     @Test
     @Throws(Exception::class)
-    fun insertAndGetNight() {
+    suspend fun insertAndGetNight() {
         val night = SleepNight()
         sleepDao.insert(night)
         val tonight = sleepDao.getTonight()
