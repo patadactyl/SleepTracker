@@ -112,5 +112,19 @@ class SleepTrackerViewModel(
         val nightsString = Transformations.map(nights) { nights ->
                 formatNights(nights, application.resources)
         }
+        //Only allow start button to be clicked if no sleep night is in progress
+        val startButtonVisible = Transformations.map(tonight) {
+                null == it
+        }
+        //only allow stop button to be clicked if sleep night is in progress
+        val stopButtonVisible = Transformations.map(tonight) {
+                null != it
+        }
+        //Only allow clear button to be clicked if there are recorded sleep nights
+        val clearButtonVisible = Transformations.map(nights) {
+                it?.isNotEmpty()
+        }
+
+
 }
 
