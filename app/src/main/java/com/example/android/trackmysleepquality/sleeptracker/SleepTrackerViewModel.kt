@@ -17,14 +17,12 @@
 package com.example.android.trackmysleepquality.sleeptracker
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Transformations
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.example.android.trackmysleepquality.database.SleepDatabaseDao
 import com.example.android.trackmysleepquality.database.SleepNight
 import com.example.android.trackmysleepquality.formatNights
 import kotlinx.coroutines.*
+import java.lang.reflect.Array.get
 
 /**
  * ViewModel for SleepTrackerFragment.
@@ -32,6 +30,16 @@ import kotlinx.coroutines.*
 class SleepTrackerViewModel(
         val database: SleepDatabaseDao,
         application: Application) : AndroidViewModel(application) {
+
+        //Set a LiveData that changes when you want to navigate
+        private val _navigateToSleepQuality = MutableLiveData<SleepNight>()
+        //Use encapsulation to expose only a gettable version of the fragment
+        val navigateToSleepQuality: LiveData<SleepNight>
+                get() = _navigateToSleepQuality
+        //resets the event
+        fun doneNavigating() {
+                _navigateToSleepQuality.value = null
+        }
 
         //Create tonight live data var and use coroutine to initialize from database
         private var tonight = MutableLiveData<SleepNight?>()
@@ -47,6 +55,7 @@ class SleepTrackerViewModel(
                         tonight.value = getTonightFromDatabase()
                 }
         }
+        //Handles case of stopped app or forgotten recording
         private suspend fun getTonightFromDatabase(): SleepNight? {
                 //let coroutine get tonight from database
                 var night = database.getTonight()
@@ -55,19 +64,6 @@ class SleepTrackerViewModel(
                         night = null
                 }
                 return night
-        }
-
-        private suspend fun insert(night: SleepNight) {
-                database.insert(night)
-        }
-
-        private suspend fun update(night: SleepNight) {
-                database.update(night)
-        }
-        private suspend fun clear() {
-                withContext(Dispatchers.IO) {
-                        database.clear()
-                }
         }
 
         //Executes when the START button is clicked.
@@ -79,6 +75,9 @@ class SleepTrackerViewModel(
                         tonight.value= getTonightFromDatabase()
                 }
         }
+        private suspend fun insert(night: SleepNight) {
+                database.insert(night)
+        }
 
         //Executes when the STOP button is clicked.
         fun onStopTracking() {
@@ -88,7 +87,12 @@ class SleepTrackerViewModel(
                         val oldNight = tonight.value?: return@launch
                         oldNight.endTimeMilli = System.currentTimeMillis()
                         update(oldNight)
+                        //trigger navigation for the event
+                        _navigateToSleepQuality.value = oldNight
                 }
+        }
+        private suspend fun update(night: SleepNight) {
+                database.update(night)
         }
 
         //Executes when the CLEAR button is clicked.
@@ -96,6 +100,11 @@ class SleepTrackerViewModel(
                 viewModelScope.launch {
                         clear()
                         tonight.value = null
+                }
+        }
+        private suspend fun clear() {
+                withContext(Dispatchers.IO) {
+                        database.clear()
                 }
         }
 
